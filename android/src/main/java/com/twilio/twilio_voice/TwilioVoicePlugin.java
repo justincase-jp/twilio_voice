@@ -177,7 +177,7 @@ public class TwilioVoicePlugin implements FlutterPlugin, MethodChannel.MethodCal
                         String from = intent.getStringExtra(Constants.CALL_TO);
                         Log.d(TAG, "calling: " + to);
                         params.put("To", to.replace("client:", ""));
-                        sendPhoneCallEvents("ReturningCall|" + from + "|" + to + "|" + "Incoming", null);
+                        sendPhoneCallEvents("ReturningCall|" + from + "|" + to + "|" + "Incoming");
                         this.callOutgoing = true;
                         final ConnectOptions connectOptions = new ConnectOptions.Builder(this.accessToken)
                                 .params(params)
@@ -202,7 +202,7 @@ public class TwilioVoicePlugin implements FlutterPlugin, MethodChannel.MethodCal
     }
 
     private void handleIncomingCall(String from, String to) {
-        sendPhoneCallEvents("Ringing|" + from + "|" + to + "|" + "Incoming" + formatCustomParams(activeCallInvite.getCustomParameters()), null);
+        sendPhoneCallEvents("Ringing|" + from + "|" + to + "|" + "Incoming" + formatCustomParams(activeCallInvite.getCustomParameters()));
 
     }
 
@@ -215,14 +215,14 @@ public class TwilioVoicePlugin implements FlutterPlugin, MethodChannel.MethodCal
     }
 
     private void handleReject() {
-        sendPhoneCallEvents("LOG|Call Rejected", null);
+        sendPhoneCallEvents("LOG|Call Rejected");
 
     }
 
     private void handleCancel() {
         callOutgoing = false;
-        sendPhoneCallEvents("Missed Call", null);
-        sendPhoneCallEvents("Call Ended", null);
+        sendPhoneCallEvents("Missed Call");
+        sendPhoneCallEvents("Call Ended");
 
         Intent intent = new Intent(activity, AnswerJavaActivity.class);
         intent.setAction(Constants.ACTION_CANCEL_CALL);
@@ -397,7 +397,7 @@ public class TwilioVoicePlugin implements FlutterPlugin, MethodChannel.MethodCal
             boolean speakerIsOn = call.argument("speakerIsOn");
             // if(speakerIsOn == null) return;
             audioManager.setSpeakerphoneOn(speakerIsOn);
-            sendPhoneCallEvents(speakerIsOn ? "Speaker On" : "Speaker Off", null);
+            sendPhoneCallEvents(speakerIsOn ? "Speaker On" : "Speaker Off");
 
             result.success(true);
         } else if (call.method.equals("toggleMute")) {
@@ -424,7 +424,7 @@ public class TwilioVoicePlugin implements FlutterPlugin, MethodChannel.MethodCal
             result.success(true);
         } else if (call.method.equals("makeCall")) {
             Log.d(TAG, "Making new call");
-            sendPhoneCallEvents("LOG|Making new call", null);
+            sendPhoneCallEvents("LOG|Making new call");
             final HashMap<String, String> params = new HashMap<>();
             Map<String, Object> args = call.arguments();
             for (Map.Entry<String, Object> entry : args.entrySet()) {
@@ -446,7 +446,7 @@ public class TwilioVoicePlugin implements FlutterPlugin, MethodChannel.MethodCal
             String name = call.argument("name");
             boolean added = false;
             if (id != null && name != null) {
-                sendPhoneCallEvents("LOG|Registering client " + id + ":" + name, null);
+                sendPhoneCallEvents("LOG|Registering client " + id + ":" + name);
                 SharedPreferences.Editor edit = pSharedPref.edit();
                 edit.putString(id, name);
                 edit.apply();
@@ -457,7 +457,7 @@ public class TwilioVoicePlugin implements FlutterPlugin, MethodChannel.MethodCal
             String id = call.argument("id");
             boolean added = false;
             if (id != null) {
-                sendPhoneCallEvents("LOG|Unregistering" + id, null);
+                sendPhoneCallEvents("LOG|Unregistering" + id);
                 SharedPreferences.Editor edit = pSharedPref.edit();
                 edit.remove(id);
                 edit.apply();
@@ -468,7 +468,7 @@ public class TwilioVoicePlugin implements FlutterPlugin, MethodChannel.MethodCal
             String caller = call.argument("defaultCaller");
             boolean added = false;
             if (caller != null) {
-                sendPhoneCallEvents("LOG|defaultCaller is " + caller, null);
+                sendPhoneCallEvents("LOG|defaultCaller is " + caller);
                 SharedPreferences.Editor edit = pSharedPref.edit();
                 edit.putString("defaultCaller", caller);
                 edit.apply();
@@ -478,7 +478,7 @@ public class TwilioVoicePlugin implements FlutterPlugin, MethodChannel.MethodCal
         } else if (call.method.equals("hasMicPermission")) {
             result.success(this.checkPermissionForMicrophone());
         } else if (call.method.equals("requestMicPermission")) {
-            sendPhoneCallEvents("LOG|requesting mic permission", null);
+            sendPhoneCallEvents("LOG|requesting mic permission");
             if (!this.checkPermissionForMicrophone()) {
                 boolean hasAccess = this.requestPermissionForMicrophone();
                 result.success(hasAccess);
@@ -532,11 +532,17 @@ public class TwilioVoicePlugin implements FlutterPlugin, MethodChannel.MethodCal
         Log.d(TAG, "Answering call");
 
         activeCallInvite.accept(this.activity, callListener);
-        sendPhoneCallEvents("Answer|" + activeCallInvite.getFrom() + "|" + activeCallInvite.getTo() + formatCustomParams(activeCallInvite.getCustomParameters()), null);
+        sendPhoneCallEvents("Answer|" + activeCallInvite.getFrom() + "|" + activeCallInvite.getTo() + formatCustomParams(activeCallInvite.getCustomParameters()));
         notificationManager.cancel(activeCallNotificationId);
     }
 
-    private void sendPhoneCallEvents(String description, CallException error) {
+
+    private void sendPhoneCallEvents(String description) {
+        sendPhoneCallEventsWithError(description, null);
+    }
+
+    private void sendPhoneCallEventsWithError(String description, CallException error) {
+
         if (eventSink == null) {
             return;
         }
@@ -605,7 +611,7 @@ public class TwilioVoicePlugin implements FlutterPlugin, MethodChannel.MethodCal
             @Override
             public void onRinging(Call call) {
                 Log.d(TAG, "onRinging");
-                sendPhoneCallEvents("Ringing|" + call.getFrom() + "|" + call.getTo() + "|" + (callOutgoing ? "Outgoing" : "Incoming"), null);
+                sendPhoneCallEvents("Ringing|" + call.getFrom() + "|" + call.getTo() + "|" + (callOutgoing ? "Outgoing" : "Incoming"));
             }
 
             @Override
@@ -614,7 +620,7 @@ public class TwilioVoicePlugin implements FlutterPlugin, MethodChannel.MethodCal
                 Log.d(TAG, "Connect failure");
                 String message = String.format("Call Error: %d, %s", error.getErrorCode(), error.getMessage());
                 Log.e(TAG, message);
-                sendPhoneCallEvents("LOG|" + message, error);
+                sendPhoneCallEventsWithError("LOG|" + message, error);
 
             }
 
@@ -629,7 +635,7 @@ public class TwilioVoicePlugin implements FlutterPlugin, MethodChannel.MethodCal
                  */
                 savedVolumeControlStream = activity.getVolumeControlStream();
                 activity.setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
-                sendPhoneCallEvents("Connected|" + call.getFrom() + "|" + call.getTo() + "|" + (callOutgoing ? "Outgoing" : "Incoming"), null);
+                sendPhoneCallEvents("Connected|" + call.getFrom() + "|" + call.getTo() + "|" + (callOutgoing ? "Outgoing" : "Incoming"));
             }
 
             @Override
@@ -651,7 +657,7 @@ public class TwilioVoicePlugin implements FlutterPlugin, MethodChannel.MethodCal
                     Log.e(TAG, message);
                 }
                 activity.setVolumeControlStream(savedVolumeControlStream);
-                sendPhoneCallEvents("Call Ended", error);
+                sendPhoneCallEventsWithError("Call Ended", error);
                 disconnected();
             }
         };
@@ -689,14 +695,14 @@ public class TwilioVoicePlugin implements FlutterPlugin, MethodChannel.MethodCal
         if (activeCall != null) {
             boolean hold = activeCall.isOnHold();
             activeCall.hold(!hold);
-            sendPhoneCallEvents(hold ? "Unhold" : "Hold", null);
+            sendPhoneCallEvents(hold ? "Unhold" : "Hold");
         }
     }
 
     private void mute(boolean muted) {
         if (activeCall != null) {
             activeCall.mute(muted);
-            sendPhoneCallEvents(muted ? "Mute" : "Unmute", null);
+            sendPhoneCallEvents(muted ? "Mute" : "Unmute");
         }
     }
 
@@ -747,15 +753,15 @@ public class TwilioVoicePlugin implements FlutterPlugin, MethodChannel.MethodCal
     }
 
     private boolean checkPermissionForMicrophone() {
-        sendPhoneCallEvents("LOG|checkPermissionForMicrophone", null);
+        sendPhoneCallEvents("LOG|checkPermissionForMicrophone");
         int resultMic = ContextCompat.checkSelfPermission(this.context, Manifest.permission.RECORD_AUDIO);
         return resultMic == PackageManager.PERMISSION_GRANTED;
     }
 
     private boolean requestPermissionForMicrophone() {
-        sendPhoneCallEvents("LOG|requestPermissionForMicrophone", null);
+        sendPhoneCallEvents("LOG|requestPermissionForMicrophone");
         if (ActivityCompat.shouldShowRequestPermissionRationale(this.activity, Manifest.permission.RECORD_AUDIO)) {
-            sendPhoneCallEvents("RequestMicrophoneAccess", null);
+            sendPhoneCallEvents("RequestMicrophoneAccess");
             return false;
         } else {
             ActivityCompat.requestPermissions(this.activity,
